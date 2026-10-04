@@ -23,6 +23,13 @@ public class Session
     public long ExpiresIn { get; set; }
 
     /// <summary>
+    ///     When the access token expires, in Unix seconds, as the server reported it. Null for a session
+    ///     from a server that did not report it.
+    /// </summary>
+    [JsonPropertyName("expires_at")]
+    public long? ExpiresAt { get; set; }
+
+    /// <summary>
     /// The oauth provider token. If present, this can be used to make external API requests to the oauth provider used.
     /// </summary>
     [JsonPropertyName("provider_token")]

@@ -149,6 +149,20 @@ public interface IGotrueClient<TUser, TSession> : IGettableHeaders
     Task<TSession?> RetrieveSessionAsync();
 
     /// <summary>
+    ///     The current session, with an access token the server still accepts: when the token has expired,
+    ///     or expires within the next 90 seconds (by <see cref="Session.ExpiresAt" />, else by
+    ///     <see cref="Session.CreatedAt" /> plus <see cref="Session.ExpiresIn" />), the session is refreshed
+    ///     first, and concurrent callers share that one refresh. Without a session this returns null; while the client is marked offline
+    ///     the session is returned as it is. A refresh the server rejects throws a
+    ///     <see cref="Exceptions.GotrueException" /> with reason
+    ///     <see cref="Exceptions.FailureHint.Reason.InvalidRefreshToken" /> and destroys the session.
+    ///     This is what a request should read its credentials from, so a token that expired while no
+    ///     refresh could run (a device asleep, a tab frozen) is renewed before it is sent.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels waiting for the refresh; the refresh itself completes.</param>
+    Task<TSession?> GetSessionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///     Sends a Magic email login link to the specified email.
     ///     Most of the interesting configuration for this flow is done in the
     ///     Supabase/GoTrue admin panel.

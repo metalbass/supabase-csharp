@@ -767,6 +767,46 @@ public class Client : IGotrueClient<User, Session>
     }
 
     /// <inheritdoc />
+    public async Task<Session?> GetSessionAsync(CancellationToken cancellationToken = default)
+    {
+        var session = this.CurrentSession;
+        if (session?.AccessToken == null || !this.Online || !ExpiresSoon(session))
+        {
+            return session;
+        }
+        await WaitAsync(this.RefreshToken(), cancellationToken).ConfigureAwait(false);
+        return this.CurrentSession;
+    }
+
+    private static readonly TimeSpan ExpiryMargin = TimeSpan.FromSeconds(90);
+
+    private static bool ExpiresSoon(Session session) =>
+        ExpiresAt(session) is { } expiresAt && expiresAt - DateTime.UtcNow < ExpiryMargin;
+
+    private static DateTime? ExpiresAt(Session session)
+    {
+        if (session.ExpiresAt is { } seconds)
+        {
+            return DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime;
+        }
+        return session.ExpiresIn > 0 ? session.CreatedAt.AddSeconds(session.ExpiresIn) : null;
+    }
+
+    private static async Task WaitAsync(Task task, CancellationToken cancellationToken)
+    {
+        if (!cancellationToken.CanBeCanceled)
+        {
+            await task.ConfigureAwait(false);
+            return;
+        }
+        var cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(() => cancelled.TrySetCanceled(cancellationToken)))
+        {
+            await (await Task.WhenAny(task, cancelled.Task).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<Session?> ExchangeCodeForSession(string codeVerifier, string authCode)
     {
         using var activity = GotrueInstrumentation.Source.StartActivity(GotrueInstrumentation.Spans.ExchangeCode);

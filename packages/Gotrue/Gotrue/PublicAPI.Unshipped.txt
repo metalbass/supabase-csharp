@@ -130,3 +130,7 @@ Supabase.Gotrue.SignInWithPasswordOptions.CaptchaToken.init -> void
 Supabase.Gotrue.SignInWithPasswordOptions.SignInWithPasswordOptions() -> void
 Supabase.Gotrue.StatelessClient.SignIn(Supabase.Gotrue.Constants.SignInType type, string! identifierOrToken, string? password, Supabase.Gotrue.StatelessClient.StatelessClientOptions! options, Supabase.Gotrue.SignInWithPasswordOptions! signInOptions) -> System.Threading.Tasks.Task<Supabase.Gotrue.Session?>!
 Supabase.Gotrue.StatelessClient.SignOut(string! accessToken, Supabase.Gotrue.StatelessClient.StatelessClientOptions! options, Supabase.Gotrue.Constants.SignOutScope scope) -> System.Threading.Tasks.Task!
+Supabase.Gotrue.Client.GetSessionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Supabase.Gotrue.Session?>!
+Supabase.Gotrue.Interfaces.IGotrueClient<TUser, TSession>.GetSessionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TSession?>!
+Supabase.Gotrue.Session.ExpiresAt.get -> long?
+Supabase.Gotrue.Session.ExpiresAt.set -> void
