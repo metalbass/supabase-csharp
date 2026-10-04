@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Core;
 using Supabase.Functions.Interfaces;
 using Supabase.Gotrue;
+using Supabase.Gotrue.Exceptions;
 using Supabase.Gotrue.Interfaces;
 using Supabase.Interfaces;
 using Supabase.Postgrest.Interfaces;
@@ -200,7 +202,8 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             Schema = schema,
             Retry = this.options.PostgrestRetry,
             HttpClient = this.options.HttpClient,
-            Proxy = this.options.Proxy
+            Proxy = this.options.Proxy,
+            BeforeRequest = this.RefreshExpiredSessionAsync
         });
         this.postgrest.GetHeaders = () => this.GetAuthHeaders();
 
@@ -243,6 +246,23 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             await this.Realtime.ConnectAsync();
 
         return this;
+    }
+
+    /// <summary>
+    /// Runs before each Postgrest request. An access token that expired while no refresh could run (a
+    /// device asleep, a tab frozen) is renewed here, so the request leaves with a token the server
+    /// accepts. A refresh that fails lets the request go ahead and be refused by the server, as supabase-js
+    /// does.
+    /// </summary>
+    private async Task RefreshExpiredSessionAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await this.Auth.GetSessionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (GotrueException)
+        {
+        }
     }
 
     private void Auth_StateChanged(object sender, AuthState e)
