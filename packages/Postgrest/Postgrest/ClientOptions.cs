@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Supabase.Core.Http;
 #pragma warning disable CS1591
 namespace Supabase.Postgrest;
@@ -39,4 +42,11 @@ public class ClientOptions
 
     /// <summary>A proxy to route requests through. Only used when <see cref="HttpClient"/> is not supplied.</summary>
     public IWebProxy? Proxy { get; set; }
+
+    /// <summary>
+    /// Awaited before each request reads its headers through <see cref="Client.GetHeaders"/>. A host whose
+    /// credentials can go stale, such as an access token that expired while the device slept, renews them
+    /// here, so the request leaves with current credentials instead of being refused.
+    /// </summary>
+    public Func<CancellationToken, Task>? BeforeRequest { get; set; }
 }

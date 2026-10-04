@@ -933,46 +933,50 @@ public class Table<TModel> : IPostgrestTable<TModel> where TModel : BaseModel, n
         return request;
     }
 
-    private Task<BaseResponse> Send(HttpMethod method, object? data, Dictionary<string, string>? headers = null,
+    private async Task<BaseResponse> Send(HttpMethod method, object? data, Dictionary<string, string>? headers = null,
         CancellationToken cancellationToken = default, bool isInsert = false,
         bool isUpdate = false, bool isUpsert = false)
     {
         var requestHeaders = Helpers.PrepareRequestHeaders(method, headers, this.options, this.rangeFrom, this.rangeTo);
-
-        if (this.GetHeaders != null)
-        {
-            requestHeaders = this.GetHeaders().MergeLeft(requestHeaders);
-        }
-
         var url = this.GenerateUrl();
         var preparedData = this.PrepareRequestData(data, isInsert, isUpdate, isUpsert);
-
-        Hooks.Instance.NotifyOnRequestPreparedHandlers(this, this.options, method, url, this.serializerSettings,
-            preparedData, requestHeaders);
-
-        Debugger.Instance.Log(this,
-            $"Request [{method}] at {DateTime.Now.ToLocalTime()}\n" +
-            $"Headers:\n\t{JsonSerializer.Serialize(requestHeaders, PostgrestSerializerOptions.Passthrough)}\n" +
-            $"Data:\n\t{JsonSerializer.Serialize(preparedData, PostgrestSerializerOptions.Passthrough)}");
-
         var operation = PostgrestInstrumentation.ResolveOperation(method, isInsert, isUpdate, isUpsert);
-        return Helpers.MakeRequestAsync(this.options, this.httpClient, method, url, this.serializerSettings, preparedData, requestHeaders,
-            cancellationToken, operation);
+
+        requestHeaders = await this.WithCurrentHeaders(requestHeaders, cancellationToken).ConfigureAwait(false);
+        this.NotifyRequestPrepared(method, url, preparedData, requestHeaders);
+
+        return await Helpers.MakeRequestAsync(this.options, this.httpClient, method, url, this.serializerSettings, preparedData, requestHeaders,
+            cancellationToken, operation).ConfigureAwait(false);
     }
 
-    private Task<ModeledResponse<TU>> Send<TU>(HttpMethod method, object? data,
+    private async Task<ModeledResponse<TU>> Send<TU>(HttpMethod method, object? data,
         Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default,
         bool isInsert = false,
         bool isUpdate = false, bool isUpsert = false) where TU : BaseModel, new()
     {
         var requestHeaders = Helpers.PrepareRequestHeaders(method, headers, this.options, this.rangeFrom, this.rangeTo);
-
-        if (this.GetHeaders != null)
-            requestHeaders = this.GetHeaders().MergeLeft(requestHeaders);
-
         var url = this.GenerateUrl();
         var preparedData = this.PrepareRequestData(data, isInsert, isUpdate, isUpsert);
+        var operation = PostgrestInstrumentation.ResolveOperation(method, isInsert, isUpdate, isUpsert);
 
+        requestHeaders = await this.WithCurrentHeaders(requestHeaders, cancellationToken).ConfigureAwait(false);
+        this.NotifyRequestPrepared(method, url, preparedData, requestHeaders);
+
+        return await Helpers.MakeRequestAsync<TU>(this.options, this.httpClient, method, url, this.serializerSettings, preparedData, requestHeaders, this.GetHeaders, cancellationToken, operation).ConfigureAwait(false);
+    }
+
+    private async Task<Dictionary<string, string>> WithCurrentHeaders(Dictionary<string, string> requestHeaders, CancellationToken cancellationToken)
+    {
+        if (this.options.BeforeRequest != null)
+        {
+            await this.options.BeforeRequest(cancellationToken).ConfigureAwait(false);
+        }
+
+        return this.GetHeaders != null ? this.GetHeaders().MergeLeft(requestHeaders) : requestHeaders;
+    }
+
+    private void NotifyRequestPrepared(HttpMethod method, string url, object? preparedData, Dictionary<string, string> requestHeaders)
+    {
         Hooks.Instance.NotifyOnRequestPreparedHandlers(this, this.options, method, url, this.serializerSettings,
             preparedData, requestHeaders);
 
@@ -980,9 +984,6 @@ public class Table<TModel> : IPostgrestTable<TModel> where TModel : BaseModel, n
             $"Request [{method}] at {DateTime.Now.ToLocalTime()}\n" +
             $"Headers:\n\t{JsonSerializer.Serialize(requestHeaders, PostgrestSerializerOptions.Passthrough)}\n" +
             $"Data:\n\t{JsonSerializer.Serialize(preparedData, PostgrestSerializerOptions.Passthrough)}");
-
-        var operation = PostgrestInstrumentation.ResolveOperation(method, isInsert, isUpdate, isUpsert);
-        return Helpers.MakeRequestAsync<TU>(this.options, this.httpClient, method, url, this.serializerSettings, preparedData, requestHeaders, this.GetHeaders, cancellationToken, operation);
     }
 
     private static string FindTableName(object? obj = null)

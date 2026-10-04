@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Core.Extensions;
 using Supabase.Postgrest.Interfaces;
@@ -112,7 +113,7 @@ public class Client : IPostgrestClient
     }
 
     /// <inheritdoc />
-    public Task<BaseResponse> Rpc(string procedureName, object? parameters = null)
+    public async Task<BaseResponse> Rpc(string procedureName, object? parameters = null)
     {
         // Build Uri
         var builder = new UriBuilder($"{this.BaseUrl}/rpc/{procedureName}");
@@ -131,12 +132,13 @@ public class Client : IPostgrestClient
         var headers = Helpers.PrepareRequestHeaders(HttpMethod.Post,
             new Dictionary<string, string>(this.Options.Headers), this.Options);
 
+        if (this.Options.BeforeRequest != null)
+            await this.Options.BeforeRequest(CancellationToken.None).ConfigureAwait(false);
+
         if (this.GetHeaders != null)
             headers = this.GetHeaders().MergeLeft(headers);
 
         // Send request
-        var request =
-            Helpers.MakeRequestAsync(this.Options, this.httpClient, HttpMethod.Post, canonicalUri, serializerSettings, data, headers, operation: "rpc");
-        return request;
+        return await Helpers.MakeRequestAsync(this.Options, this.httpClient, HttpMethod.Post, canonicalUri, serializerSettings, data, headers, operation: "rpc").ConfigureAwait(false);
     }
 }
