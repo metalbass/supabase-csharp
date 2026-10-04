@@ -6,8 +6,10 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Realtime.Tests.Models;
 using Realtime.Tests.Support;
+using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Exceptions;
 using Supabase.Postgrest.Interfaces;
+using Supabase.Postgrest.Models;
 using Supabase.Realtime.PostgresChanges;
 
 namespace Realtime.Tests.PostgresChanges;
@@ -24,9 +26,17 @@ public class PostgresChangesModelTests
 {
     private const string BaseUrl = "http://localhost:54321/rest/v1";
 
-    private static PostgresChangesResponse BuildResponse(IPostgrestClient? postgrestClient)
+    [Table("meal_entries")]
+    private class EntryWithTypeColumn : BaseModel
     {
-        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "PostgresChangesUpdateEvent.json"));
+        [PrimaryKey("id")] public int Id { get; set; }
+        [Column("type")] public int Type { get; set; }
+        [Column("details")] public string? Details { get; set; }
+    }
+
+    private static PostgresChangesResponse BuildResponse(IPostgrestClient? postgrestClient, string fixture = "PostgresChangesUpdateEvent.json")
+    {
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", fixture));
         var settings = Wire.Settings();
         var response = JsonSerializer.Deserialize<PostgresChangesResponse>(json, settings)!;
         response.Json = json;
@@ -42,6 +52,14 @@ public class PostgresChangesModelTests
         model.Should().NotBeNull();
         model!.Id.Should().Be(12);
         model.Details.Should().Be("test...");
+    }
+
+    [TestMethod]
+    public void Model_ShouldDeserialiseRecord_GivenAColumnNamedType()
+    {
+        var model = BuildResponse(postgrestClient: null, "PostgresChangesInsertEventWithTypeColumn.json").Model<EntryWithTypeColumn>();
+        model.Should().NotBeNull("a record is plain row data, so its column names must not collide with the frame envelope's fields");
+        model!.Type.Should().Be(2);
     }
 
     [TestMethod]

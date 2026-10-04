@@ -22,7 +22,7 @@ public class PostgresChangesResponse<T> : SocketResponse<PostgresChangesPayload<
 /// <summary>
 /// A postgres changes event.
 /// </summary>
-public class PostgresChangesResponse : SocketResponse<PostgresChangesPayload<SocketResponsePayload>>
+public class PostgresChangesResponse : SocketResponse<PostgresChangesPayload<Dictionary<string, object?>>>
 {
     /// <summary>Parameterless constructor used by System.Text.Json when deserializing.</summary>
     public PostgresChangesResponse() { }
