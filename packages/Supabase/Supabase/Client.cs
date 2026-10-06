@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Supabase.Core;
 using Supabase.Functions.Interfaces;
 using Supabase.Gotrue;
+using Supabase.Gotrue.Exceptions;
 using Supabase.Gotrue.Interfaces;
 using Supabase.Interfaces;
 using Supabase.Postgrest.Interfaces;
@@ -203,7 +204,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             HttpClient = this.options.HttpClient,
             Proxy = this.options.Proxy
         });
-        this.postgrest.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
+        this.postgrest.GetHeaders = cancellationToken => this.GetSessionHeadersAsync(cancellationToken);
 
         // Init Realtime
 
@@ -214,7 +215,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             WebSocketFactory = this.options.WebSocketFactory
         };
         this.realtime = new Realtime.Client(realtimeUrl, realtimeOptions);
-        this.realtime.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
+        this.realtime.GetHeaders = cancellationToken => this.GetSessionHeadersAsync(cancellationToken);
         this.functions = new Functions.Client(functionsUrl, options: new Functions.ClientOptions
         {
             HttpClient = this.options.HttpClient,
@@ -223,9 +224,9 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
         });
         // Edge Functions must not receive a new-format (opaque) API key on the Authorization
         // header — the gateway would try to parse it as a JWT and reject the request.
-        this.functions.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders(omitApiKeyAsBearer: true));
+        this.functions.GetHeaders = cancellationToken => this.GetSessionHeadersAsync(cancellationToken, omitApiKeyAsBearer: true);
         this.storage = new Storage.Client(storageUrl, this.options.StorageClientOptions);
-        this.storage.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
+        this.storage.GetHeaders = cancellationToken => this.GetSessionHeadersAsync(cancellationToken);
     }
 
 
@@ -244,6 +245,25 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             await this.Realtime.ConnectAsync();
 
         return this;
+    }
+
+    /// <summary>
+    /// The headers of each request to Postgrest, Storage, Functions and Realtime. The session is read through
+    /// <see cref="IGotrueClient{TUser,TSession}.GetSessionAsync" /> first, so an access token that expired while no
+    /// refresh could run (a device asleep, a tab frozen) is renewed before it is sent, as supabase-js reads every
+    /// request's token through <c>getSession()</c>. A refresh that fails lets the request go ahead and be refused by
+    /// the server. Auth's own requests read <see cref="GetAuthHeaders" /> directly: a refresh must not wait for itself.
+    /// </summary>
+    private async Task<Dictionary<string, string>> GetSessionHeadersAsync(CancellationToken cancellationToken, bool omitApiKeyAsBearer = false)
+    {
+        try
+        {
+            await this.Auth.GetSessionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (GotrueException)
+        {
+        }
+        return this.GetAuthHeaders(omitApiKeyAsBearer);
     }
 
     private void Auth_StateChanged(object sender, AuthState e)
