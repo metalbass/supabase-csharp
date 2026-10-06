@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Core.Extensions;
 using Supabase.Postgrest.Interfaces;
@@ -58,11 +59,13 @@ public class Client : IPostgrestClient
     public void ClearDebugHandlers() => Debugger.Instance.ClearDebugHandlers();
 
     /// <summary>
-    /// Function that can be set to return dynamic headers.
+    /// Function that can be set to return dynamic headers. It is awaited before each request is sent, so a
+    /// host can renew stale credentials (an access token that expired while the device slept) and hand back
+    /// current ones.
     /// 
     /// Headers specified in the constructor options will ALWAYS take precedence over headers returned by this function.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
 
     /// <summary>
     /// Should be the first call to this class to initialize a connection with a Postgrest API Server
@@ -112,7 +115,7 @@ public class Client : IPostgrestClient
     }
 
     /// <inheritdoc />
-    public Task<BaseResponse> Rpc(string procedureName, object? parameters = null)
+    public async Task<BaseResponse> Rpc(string procedureName, object? parameters = null)
     {
         // Build Uri
         var builder = new UriBuilder($"{this.BaseUrl}/rpc/{procedureName}");
@@ -132,11 +135,9 @@ public class Client : IPostgrestClient
             new Dictionary<string, string>(this.Options.Headers), this.Options);
 
         if (this.GetHeaders != null)
-            headers = this.GetHeaders().MergeLeft(headers);
+            headers = (await this.GetHeaders(CancellationToken.None).ConfigureAwait(false)).MergeLeft(headers);
 
         // Send request
-        var request =
-            Helpers.MakeRequestAsync(this.Options, this.httpClient, HttpMethod.Post, canonicalUri, serializerSettings, data, headers, operation: "rpc");
-        return request;
+        return await Helpers.MakeRequestAsync(this.Options, this.httpClient, HttpMethod.Post, canonicalUri, serializerSettings, data, headers, operation: "rpc").ConfigureAwait(false);
     }
 }

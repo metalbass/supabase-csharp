@@ -44,7 +44,7 @@ public partial class Client : IFunctionsClient
     ///
     /// Headers specified in the method parameters will ALWAYS take precedence over headers returned by this function.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
 
     /// <summary>The options this client was constructed with.</summary>
     public ClientOptions Options { get; }
@@ -169,7 +169,7 @@ public partial class Client : IFunctionsClient
 
         if (this.GetHeaders != null)
         {
-            options.Headers = this.GetHeaders().MergeLeft(options.Headers);
+            options.Headers = (await this.GetHeaders(cancellationToken).ConfigureAwait(false)).MergeLeft(options.Headers);
         }
 
         if (!string.IsNullOrEmpty(token))

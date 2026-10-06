@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Supabase.Realtime;
@@ -65,10 +66,10 @@ public class ClientConnectionTests
     public async Task ConnectAsync_ShouldForwardCustomHeaders()
     {
         var client = Helpers.SocketClient();
-        client.GetHeaders = () => new Dictionary<string, string> { { "testing", "123" } };
+        client.GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "testing", "123" } });
         await client.ConnectAsync();
         Assert.IsNotNull(client.Socket);
         Assert.IsNotNull(client.Socket.GetHeaders);
-        Assert.AreEqual("123", client.Socket.GetHeaders!()["testing"]);
+        Assert.AreEqual("123", (await client.Socket.GetHeaders!(CancellationToken.None))["testing"]);
     }
 }

@@ -24,7 +24,7 @@ public abstract class BaseModel
     public ClientOptions? RequestClientOptions { get; set; }
 
     [JsonIgnore]
-    internal Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    internal Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
 
 
     public Task<ModeledResponse<T>> Update<T>(CancellationToken cancellationToken = default) where T : BaseModel, new()

@@ -823,7 +823,7 @@ public class Client : IGotrueClient<User, Session>
     /// <summary>
     ///     Headers sent to the API on every request.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders
     {
         get => this.api.GetHeaders;
         set => this.api.GetHeaders = value;

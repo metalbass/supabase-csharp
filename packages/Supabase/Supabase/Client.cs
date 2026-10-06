@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Core;
 using Supabase.Functions.Interfaces;
@@ -60,7 +61,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             Retry = this.options.GotrueRetry
         })
         {
-            GetHeaders = () => this.GetAuthHeaders(),
+            GetHeaders = _ => Task.FromResult(this.GetAuthHeaders()),
         };
 
     /// <summary>
@@ -194,7 +195,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
         this.auth = new Gotrue.Client(gotrueOptions);
         this.auth.SetPersistence(this.options.SessionHandler);
         this.auth.AddStateChangedListener(this.Auth_StateChanged);
-        this.auth.GetHeaders = () => this.GetAuthHeaders();
+        this.auth.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
         this.postgrest = new Postgrest.Client(restUrl, new Postgrest.ClientOptions
         {
             Schema = schema,
@@ -202,7 +203,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             HttpClient = this.options.HttpClient,
             Proxy = this.options.Proxy
         });
-        this.postgrest.GetHeaders = () => this.GetAuthHeaders();
+        this.postgrest.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
 
         // Init Realtime
 
@@ -213,7 +214,7 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
             WebSocketFactory = this.options.WebSocketFactory
         };
         this.realtime = new Realtime.Client(realtimeUrl, realtimeOptions);
-        this.realtime.GetHeaders = () => this.GetAuthHeaders();
+        this.realtime.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
         this.functions = new Functions.Client(functionsUrl, options: new Functions.ClientOptions
         {
             HttpClient = this.options.HttpClient,
@@ -222,9 +223,9 @@ public class Client : ISupabaseClient<User, Session, RealtimeSocket, RealtimeCha
         });
         // Edge Functions must not receive a new-format (opaque) API key on the Authorization
         // header — the gateway would try to parse it as a JWT and reject the request.
-        this.functions.GetHeaders = () => this.GetAuthHeaders(omitApiKeyAsBearer: true);
+        this.functions.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders(omitApiKeyAsBearer: true));
         this.storage = new Storage.Client(storageUrl, this.options.StorageClientOptions);
-        this.storage.GetHeaders = () => this.GetAuthHeaders();
+        this.storage.GetHeaders = _ => Task.FromResult(this.GetAuthHeaders());
     }
 
 

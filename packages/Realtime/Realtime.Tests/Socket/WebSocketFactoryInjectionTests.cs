@@ -61,7 +61,7 @@ public class WebSocketFactoryInjectionTests
     }
 
     [TestMethod]
-    public void HeadersProvider_ShouldReEvaluateLazily_GivenALateSetGetHeaders()
+    public async Task HeadersProvider_ShouldReturnHeadersResolvedAtConnect_GivenALateSetGetHeaders()
     {
         var fakeClient = new FakeWebsocketClient();
         var factory = new FakeWebSocketFactory(fakeClient);
@@ -70,11 +70,13 @@ public class WebSocketFactoryInjectionTests
         // Mirrors Supabase.Realtime.Client.ConnectAsync(): GetHeaders is assigned to the socket
         // *after* construction, so the factory's headers provider must re-invoke rather than have
         // captured a stale (empty) snapshot at construction time.
-        socket.GetHeaders = () => new Dictionary<string, string> { { "X-Late", "yes" } };
+        socket.GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "X-Late", "yes" } });
+
+        await socket.Connect();
 
         factory.HeadersProvider.Should().NotBeNull();
         factory.HeadersProvider!().Should().ContainKey("X-Late",
-            "the header provider must be re-invoked at connect time so headers set after construction are honored");
+            "the headers are resolved at connect time so headers set after construction are honored");
     }
 
     private sealed class FakeWebSocketFactory(IWebsocketClient client) : IWebSocketFactory

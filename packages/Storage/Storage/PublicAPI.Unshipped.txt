@@ -1,1 +1,5 @@
 #nullable enable
+*REMOVED*Supabase.Storage.StorageBucketApi.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Storage.StorageBucketApi.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+Supabase.Storage.StorageFileApi.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+Supabase.Storage.StorageFileApi.GetHeaders.set -> void

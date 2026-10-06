@@ -67,7 +67,7 @@ internal static class Helpers
     /// <param name="operation">Logical operation name recorded on telemetry (select/insert/update/…).</param>
     /// <returns></returns>
     public static async Task<ModeledResponse<T>> MakeRequestAsync<T>(ClientOptions clientOptions, HttpClient? httpClient, HttpMethod method, string url, JsonSerializerOptions serializerSettings, object? data = null,
-        Dictionary<string, string>? headers = null, Func<Dictionary<string, string>>? getHeaders = null, CancellationToken cancellationToken = default, string? operation = null) where T : BaseModel, new()
+        Dictionary<string, string>? headers = null, Func<CancellationToken, Task<Dictionary<string, string>>>? getHeaders = null, CancellationToken cancellationToken = default, string? operation = null) where T : BaseModel, new()
     {
         var baseResponse = await MakeRequestAsync(clientOptions, httpClient, method, url, serializerSettings, data, headers, cancellationToken, operation);
         return new ModeledResponse<T>(baseResponse, serializerSettings, getHeaders);

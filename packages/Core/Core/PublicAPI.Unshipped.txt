@@ -1,1 +1,3 @@
 #nullable enable
+*REMOVED*Supabase.Core.Interfaces.IGettableHeaders.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Core.Interfaces.IGettableHeaders.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Core.Http;
 using Supabase.Gotrue.Interfaces;
@@ -39,7 +40,7 @@ public class AdminClient : IGotrueAdminClient<User>
     /// <summary>
     /// Headers sent to the API on every request.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders
     {
         get => this.api.GetHeaders;
         set => this.api.GetHeaders = value;

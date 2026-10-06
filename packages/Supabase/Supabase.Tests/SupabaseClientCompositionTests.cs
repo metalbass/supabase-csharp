@@ -114,9 +114,9 @@ public class SupabaseClientCompositionTests
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldComposeApiKeyBearerAndClientInfoHeaders()
+    public async Task SupabaseClient_ShouldComposeApiKeyBearerAndClientInfoHeaders()
     {
-        var headers = UrlClient().Postgrest.GetHeaders!();
+        var headers = await UrlClient().Postgrest.GetHeaders!(CancellationToken.None);
         using (new AssertionScope())
         {
             headers.Should().ContainKey("apiKey").WhoseValue.Should().Be("test-key");
@@ -127,7 +127,7 @@ public class SupabaseClientCompositionTests
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldPreferDeveloperAuthorizationHeader_GivenAuthorizationInOptions()
+    public async Task SupabaseClient_ShouldPreferDeveloperAuthorizationHeader_GivenAuthorizationInOptions()
     {
         var options = new SupabaseOptions
         {
@@ -137,13 +137,13 @@ public class SupabaseClientCompositionTests
                 ["Authorization"] = "Bearer developer-token"
             }
         };
-        UrlClient(options).Postgrest.GetHeaders!().Should().ContainKey("Authorization")
+        (await UrlClient(options).Postgrest.GetHeaders!(CancellationToken.None)).Should().ContainKey("Authorization")
             .WhoseValue.Should().Be("Bearer developer-token",
                 "an explicit Authorization header must win over the key-derived bearer (issue #5)");
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldPreferDeveloperApiKeyHeader_GivenApiKeyInOptions()
+    public async Task SupabaseClient_ShouldPreferDeveloperApiKeyHeader_GivenApiKeyInOptions()
     {
         var options = new SupabaseOptions
         {
@@ -153,7 +153,7 @@ public class SupabaseClientCompositionTests
                 ["apikey"] = "developer-key"
             }
         };
-        UrlClient(options).Postgrest.GetHeaders!()
+        (await UrlClient(options).Postgrest.GetHeaders!(CancellationToken.None))
             .Where(header => string.Equals(header.Key, "apikey", StringComparison.OrdinalIgnoreCase))
             .Should().ContainSingle(
                 "a developer apikey must replace the key-derived one, not be sent alongside it as a duplicate header that breaks header-based RLS (issue #19)")
@@ -291,10 +291,10 @@ public class SupabaseClientCompositionTests
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldWireTableToClientAuthHeaders_GivenFrom()
+    public async Task SupabaseClient_ShouldWireTableToClientAuthHeaders_GivenFrom()
     {
         var table = UrlClient().From<Models.Channel>();
-        table.GetHeaders!().Should().ContainKey("apiKey").WhoseValue.Should().Be("test-key",
+        (await table.GetHeaders!(CancellationToken.None)).Should().ContainKey("apiKey").WhoseValue.Should().Be("test-key",
             "queries built from the umbrella must carry its auth headers, or every request is unauthenticated");
     }
 
@@ -310,13 +310,13 @@ public class SupabaseClientCompositionTests
     public void SupabaseClient_ShouldExposeAdminAuthClient_GivenServiceKey() => UrlClient().AdminAuth("service-key").Should().NotBeNull();
 
     [TestMethod]
-    public void SupabaseClient_ShouldPreferSessionTokenOverApiKey_GivenActiveSession()
+    public async Task SupabaseClient_ShouldPreferSessionTokenOverApiKey_GivenActiveSession()
     {
         var client = UrlClient();
         var auth = Substitute.For<IGotrueClient<User, Session>>();
         auth.CurrentSession.Returns(new Session { AccessToken = "session-token" });
         client.Auth = auth;
-        client.Postgrest.GetHeaders!().Should().ContainKey("Authorization")
+        (await client.Postgrest.GetHeaders!(CancellationToken.None)).Should().ContainKey("Authorization")
             .WhoseValue.Should().Be("Bearer session-token",
                 "an active session's access token must take precedence over the api key as the bearer");
     }
@@ -327,9 +327,9 @@ public class SupabaseClientCompositionTests
     [TestMethod]
     [DataRow("sb_publishable_abc123")]
     [DataRow("sb_secret_abc123")]
-    public void SupabaseClient_ShouldOmitBearerOnFunctionsPath_GivenNewFormatKeyAndNoSession(string key)
+    public async Task SupabaseClient_ShouldOmitBearerOnFunctionsPath_GivenNewFormatKeyAndNoSession(string key)
     {
-        var headers = NewKeyClient(key).Functions.GetHeaders!();
+        var headers = await NewKeyClient(key).Functions.GetHeaders!(CancellationToken.None);
         using (new AssertionScope())
         {
             headers.Should().ContainKey("apiKey").WhoseValue.Should().Be(key);
@@ -339,43 +339,43 @@ public class SupabaseClientCompositionTests
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldStillSendKeyAsBearerOnDatabasePath_GivenNewFormatKeyAndNoSession()
+    public async Task SupabaseClient_ShouldStillSendKeyAsBearerOnDatabasePath_GivenNewFormatKeyAndNoSession()
     {
         // Database/Storage/Realtime/auth keep the key on both headers — the gateway accepts it because
         // the Bearer value exactly equals the apikey value. Only the Functions path is special-cased.
-        NewKeyClient("sb_publishable_abc123").Postgrest.GetHeaders!().Should().ContainKey("Authorization")
+        (await NewKeyClient("sb_publishable_abc123").Postgrest.GetHeaders!(CancellationToken.None)).Should().ContainKey("Authorization")
             .WhoseValue.Should().Be("Bearer sb_publishable_abc123");
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldUseSessionTokenOnFunctionsPath_GivenNewFormatKeyAndActiveSession()
+    public async Task SupabaseClient_ShouldUseSessionTokenOnFunctionsPath_GivenNewFormatKeyAndActiveSession()
     {
         var client = NewKeyClient("sb_publishable_abc123");
         var auth = Substitute.For<IGotrueClient<User, Session>>();
         auth.CurrentSession.Returns(new Session { AccessToken = "session-token" });
         client.Auth = auth;
-        client.Functions.GetHeaders!().Should().ContainKey("Authorization")
+        (await client.Functions.GetHeaders!(CancellationToken.None)).Should().ContainKey("Authorization")
             .WhoseValue.Should().Be("Bearer session-token",
                 "with a session the user's access token is a valid JWT bearer even on the Functions path");
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldSendKeyAsBearerOnFunctionsPath_GivenLegacyKeyAndNoSession()
+    public async Task SupabaseClient_ShouldSendKeyAsBearerOnFunctionsPath_GivenLegacyKeyAndNoSession()
     {
-        NewKeyClient("legacy-jwt-key").Functions.GetHeaders!().Should().ContainKey("Authorization")
+        (await NewKeyClient("legacy-jwt-key").Functions.GetHeaders!(CancellationToken.None)).Should().ContainKey("Authorization")
             .WhoseValue.Should().Be("Bearer legacy-jwt-key",
                 "legacy JWT keys are unchanged — they are still sent as the Bearer stand-in");
     }
 
     [TestMethod]
-    public void SupabaseClient_ShouldPreferDeveloperAuthorizationOnFunctionsPath_GivenNewFormatKey()
+    public async Task SupabaseClient_ShouldPreferDeveloperAuthorizationOnFunctionsPath_GivenNewFormatKey()
     {
         var options = new SupabaseOptions
         {
             AutoConnectRealtime = false,
             Headers = { ["Authorization"] = "Bearer developer-token" }
         };
-        new Supabase.Client("http://localhost", "sb_publishable_abc123", options).Functions.GetHeaders!()
+        (await new Supabase.Client("http://localhost", "sb_publishable_abc123", options).Functions.GetHeaders!(CancellationToken.None))
             .Should().ContainKey("Authorization").WhoseValue.Should().Be("Bearer developer-token",
                 "an explicit Authorization header must win even when the key is a new-format key");
     }

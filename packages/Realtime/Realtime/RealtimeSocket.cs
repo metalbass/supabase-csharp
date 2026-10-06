@@ -43,13 +43,15 @@ public class RealtimeSocket : IDisposable, IRealtimeSocket
     }
 
     /// <inheritdoc />
-    public Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
+
+    private Dictionary<string, string>? resolvedHeaders;
 
     /// <summary>
     /// Shortcut property that merges <see cref="GetHeaders"/> with <see cref="options"/>
     /// Headers specified in <see cref="options"/> take precedence over <see cref="GetHeaders"/>
     /// </summary>
-    internal Dictionary<string, string> Headers => this.GetHeaders != null ? this.GetHeaders().MergeLeft(this.options.Headers) : this.options.Headers;
+    internal Dictionary<string, string> Headers => this.resolvedHeaders != null ? this.resolvedHeaders.MergeLeft(this.options.Headers) : this.options.Headers;
 
     private readonly List<IRealtimeSocket.StateEventHandler> socketEventHandlers = new();
     private readonly List<IRealtimeSocket.MessageEventHandler> messageEventHandlers = new();
@@ -99,6 +101,11 @@ public class RealtimeSocket : IDisposable, IRealtimeSocket
     public async Task Connect()
     {
         if (this.connection.IsRunning) return;
+
+        if (this.GetHeaders != null)
+        {
+            this.resolvedHeaders = await this.GetHeaders(CancellationToken.None).ConfigureAwait(false);
+        }
 
         this.connection.ReconnectTimeout = this.options.ReconnectAfterInterval(this.reconnectionAttempts);
         this.connection.ErrorReconnectTimeout = TimeSpan.FromSeconds(30);

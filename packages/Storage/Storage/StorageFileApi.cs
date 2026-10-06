@@ -43,6 +43,15 @@ public class StorageFileApi : IStorageFileApi<FileObject>
     ///
     /// </summary>
     protected Dictionary<string, string> Headers { get; set; }
+
+    /// <summary>
+    /// Function that can be set to return dynamic headers. It is awaited before each request is sent, so a
+    /// host can renew stale credentials and hand back current ones.
+    /// </summary>
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
+
+    private Task<Dictionary<string, string>> ResolveHeadersAsync(CancellationToken cancellationToken = default) =>
+        Helpers.ResolveHeadersAsync(this.GetHeaders, this.Headers, cancellationToken);
     /// <summary>
     ///
     /// </summary>
@@ -180,7 +189,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             url,
             body,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         if (response == null || string.IsNullOrEmpty(response.SignedUrl))
@@ -217,7 +226,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             $"{this.Url}/object/sign/{this.BucketId}",
             body,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         var downloadQueryParams = downloadOptions?.ToQueryCollection().ToString();
@@ -260,7 +269,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             $"{this.Url}/object/list/{this.BucketId}",
             body,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         return response;
@@ -279,7 +288,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Get,
             $"{this.Url}/object/info/{this.BucketId}/{path}",
             null,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         return response;
@@ -585,7 +594,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             $"{this.Url}/object/move",
             body,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
         return true;
     }
@@ -617,7 +626,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             $"{this.Url}/object/copy",
             body,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
         return true;
     }
@@ -774,7 +783,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Delete,
             $"{this.Url}/object/{this.BucketId}",
             data,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         return response;
@@ -796,7 +805,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
             HttpMethod.Post,
             url,
             null,
-            this.Headers
+            await this.ResolveHeadersAsync().ConfigureAwait(false)
         );
 
         if (
@@ -816,14 +825,14 @@ public class StorageFileApi : IStorageFileApi<FileObject>
     }
 
     /// <inheritdoc />
-    public Task<GenericResponse?> PurgeCache(
+    public async Task<GenericResponse?> PurgeCache(
         string path,
         PurgeCacheOptions? options = null,
         CancellationToken cancellationToken = default
     )
     {
         var url = options.ToPurgeUrl($"{this.Url}/cdn/{Helpers.EncodePath(this.GetFinalPath(path))}");
-        return Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, url, null, this.Headers, cancellationToken);
+        return await Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, url, null, await this.ResolveHeadersAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string> UploadOrUpdate(
@@ -1026,7 +1035,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
 
         var stream = await this.downloadClient.DownloadDataAsync(
             builder.Uri,
-            this.Headers,
+            await this.ResolveHeadersAsync().ConfigureAwait(false),
             progress,
             cancellationToken
         );
@@ -1067,7 +1076,7 @@ public class StorageFileApi : IStorageFileApi<FileObject>
 
         var stream = await this.downloadClient.DownloadDataAsync(
             builder.Uri,
-            this.Headers,
+            await this.ResolveHeadersAsync().ConfigureAwait(false),
             progress,
             cancellationToken
         );

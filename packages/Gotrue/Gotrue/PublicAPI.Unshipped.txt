@@ -134,3 +134,9 @@ Supabase.Gotrue.Client.GetSessionAsync(System.Threading.CancellationToken cancel
 Supabase.Gotrue.Interfaces.IGotrueClient<TUser, TSession>.GetSessionAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TSession?>!
 Supabase.Gotrue.Session.ExpiresAt.get -> long?
 Supabase.Gotrue.Session.ExpiresAt.set -> void
+*REMOVED*Supabase.Gotrue.AdminClient.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Gotrue.AdminClient.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+*REMOVED*Supabase.Gotrue.Api.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Gotrue.Api.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+*REMOVED*Supabase.Gotrue.Client.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Gotrue.Client.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Supabase.Storage;
@@ -15,23 +16,23 @@ namespace Storage.Tests.Headers;
 public class ClientHeaderTests
 {
     [TestMethod]
-    public void Headers_ShouldIncludeDynamicHeaders_GivenGetHeaders()
+    public async Task ResolveHeadersAsync_ShouldIncludeDynamicHeaders_GivenGetHeaders()
     {
         var client = new Client("http://localhost:5000", new Dictionary<string, string> { { "Testing", "1234" } })
         {
-            GetHeaders = () => new Dictionary<string, string> { { "Dynamic", "4567" } }
+            GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "Dynamic", "4567" } })
         };
-        client.Headers.Should().Contain("Dynamic", "4567");
+        (await client.ResolveHeadersAsync()).Should().Contain("Dynamic", "4567");
     }
 
     [TestMethod]
-    public void Headers_ShouldPreferConstructorHeadersOverDynamic()
+    public async Task ResolveHeadersAsync_ShouldPreferConstructorHeadersOverDynamic()
     {
         var client = new Client("http://localhost:5000", new Dictionary<string, string> { { "Testing", "1234" } })
         {
-            GetHeaders = () => new Dictionary<string, string> { { "Testing", "4567" } }
+            GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "Testing", "4567" } })
         };
-        client.Headers.Should().Contain("Testing", "1234");
+        (await client.ResolveHeadersAsync()).Should().Contain("Testing", "1234");
     }
 
     [TestMethod]

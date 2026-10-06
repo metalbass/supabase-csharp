@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -36,7 +37,7 @@ public class AttachTests
         var options = new ClientOptions { Schema = "public" };
         var client = new Client(BaseUrl, options)
         {
-            GetHeaders = () => new Dictionary<string, string> { { "Authorization", "Bearer test" } }
+            GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "Authorization", "Bearer test" } })
         };
         var result = client.Attach(new Movie { Name = "Realtime-hydrated Movie" });
         using (new AssertionScope())

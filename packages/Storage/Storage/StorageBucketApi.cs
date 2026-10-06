@@ -24,13 +24,7 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     private Dictionary<string, string> headers;
     public Dictionary<string, string> Headers
     {
-        get
-        {
-            if (this.GetHeaders != null)
-                this.headers = this.GetHeaders();
-
-            return this.headers.MergeLeft(this.initializedHeaders);
-        }
+        get => this.headers.MergeLeft(this.initializedHeaders);
         set
         {
             this.headers = value;
@@ -45,7 +39,10 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     /// 
     /// Headers specified in the constructor will ALWAYS take precendece over headers returned by this function.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
+
+    internal Task<Dictionary<string, string>> ResolveHeadersAsync(CancellationToken cancellationToken = default) =>
+        Helpers.ResolveHeadersAsync(this.GetHeaders, this.Headers, cancellationToken);
 
     // Resolves the HttpClients only after Options has settled to its final, caller-supplied value — a
     // previous version resolved these before a chained-from ctor's `this.Options = options` ran, so a
@@ -73,8 +70,8 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     /// Retrieves the details of all Storage buckets within an existing product.
     /// </summary>
     /// <returns></returns>
-    public Task<List<Bucket>?> ListBuckets() =>
-         Helpers.MakeRequestAsync<List<Bucket>>(this.requestClient, this.Options.Retry, HttpMethod.Get, $"{this.Url}/bucket", null, this.Headers);
+    public async Task<List<Bucket>?> ListBuckets() =>
+         await Helpers.MakeRequestAsync<List<Bucket>>(this.requestClient, this.Options.Retry, HttpMethod.Get, $"{this.Url}/bucket", null, await this.ResolveHeadersAsync().ConfigureAwait(false)).ConfigureAwait(false);
 
     /// <summary>
     /// Retrieves the details of an existing Storage bucket.
@@ -85,7 +82,7 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     {
         try
         {
-            var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Get, $"{this.Url}/bucket/{id}", null, this.Headers);
+            var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Get, $"{this.Url}/bucket/{id}", null, await this.ResolveHeadersAsync().ConfigureAwait(false));
             return result;
         }
         catch (SupabaseStorageException ex)
@@ -116,7 +113,7 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
             AllowedMimes = options.AllowedMimes
         };
 
-        var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Post, $"{this.Url}/bucket", data, this.Headers);
+        var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Post, $"{this.Url}/bucket", data, await this.ResolveHeadersAsync().ConfigureAwait(false));
 
         return result?.Name!;
     }
@@ -139,7 +136,7 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
             AllowedMimes = options.AllowedMimes
         };
 
-        var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Put, $"{this.Url}/bucket/{id}", data, this.Headers);
+        var result = await Helpers.MakeRequestAsync<Bucket>(this.requestClient, this.Options.Retry, HttpMethod.Put, $"{this.Url}/bucket/{id}", data, await this.ResolveHeadersAsync().ConfigureAwait(false));
 
         return result;
     }
@@ -149,8 +146,8 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public Task<GenericResponse?> EmptyBucket(string id) =>
-        Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Post, $"{this.Url}/bucket/{id}/empty", null, this.Headers);
+    public async Task<GenericResponse?> EmptyBucket(string id) =>
+        await Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Post, $"{this.Url}/bucket/{id}/empty", null, await this.ResolveHeadersAsync().ConfigureAwait(false)).ConfigureAwait(false);
 
     /// <summary>
     /// Deletes an existing bucket. A bucket can't be deleted with existing objects inside it.
@@ -158,17 +155,17 @@ public class StorageBucketApi : IStorageBucketApi<Bucket>
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public Task<GenericResponse?> DeleteBucket(string id) =>
-        Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, $"{this.Url}/bucket/{id}", null, this.Headers);
+    public async Task<GenericResponse?> DeleteBucket(string id) =>
+        await Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, $"{this.Url}/bucket/{id}", null, await this.ResolveHeadersAsync().ConfigureAwait(false)).ConfigureAwait(false);
 
     /// <inheritdoc />
-    public Task<GenericResponse?> PurgeBucketCache(
+    public async Task<GenericResponse?> PurgeBucketCache(
         string id,
         PurgeCacheOptions? options = null,
         CancellationToken cancellationToken = default
     )
     {
         var url = options.ToPurgeUrl($"{this.Url}/cdn/{Helpers.EncodePath(id)}");
-        return Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, url, null, this.Headers, cancellationToken);
+        return await Helpers.MakeRequestAsync<GenericResponse>(this.requestClient, this.Options.Retry, HttpMethod.Delete, url, null, await this.ResolveHeadersAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
     }
 }

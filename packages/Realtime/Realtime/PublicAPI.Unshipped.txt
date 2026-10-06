@@ -1,1 +1,5 @@
 #nullable enable
+*REMOVED*Supabase.Realtime.Client.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Realtime.Client.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+*REMOVED*Supabase.Realtime.RealtimeSocket.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+Supabase.Realtime.RealtimeSocket.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?

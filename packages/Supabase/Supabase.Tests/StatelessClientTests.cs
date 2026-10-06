@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -81,11 +83,11 @@ public class StatelessClientTests
     }
 
     [TestMethod]
-    public void Functions_ShouldCarryDeveloperHeadersToClient_GivenCustomHeader()
+    public async Task Functions_ShouldCarryDeveloperHeadersToClient_GivenCustomHeader()
     {
         var options = FormatOptions();
         options.Headers["X-Custom"] = "custom-value";
-        StatelessClient.Functions(SupabaseUrl, "my-key", options).GetHeaders!().Should().ContainKey("X-Custom")
+        (await StatelessClient.Functions(SupabaseUrl, "my-key", options).GetHeaders!(CancellationToken.None)).Should().ContainKey("X-Custom")
             .WhoseValue.Should().Be("custom-value", "developer headers must reach the composed functions client");
     }
 
@@ -101,9 +103,9 @@ public class StatelessClientTests
     [TestMethod]
     [DataRow("sb_publishable_abc123")]
     [DataRow("sb_secret_abc123")]
-    public void Functions_ShouldOmitBearer_GivenNewFormatKey(string key)
+    public async Task Functions_ShouldOmitBearer_GivenNewFormatKey(string key)
     {
-        var headers = StatelessClient.Functions(SupabaseUrl, key, FormatOptions()).GetHeaders!();
+        var headers = await StatelessClient.Functions(SupabaseUrl, key, FormatOptions()).GetHeaders!(CancellationToken.None);
         using (new AssertionScope())
         {
             headers.Should().ContainKey("apiKey").WhoseValue.Should().Be(key);
@@ -113,9 +115,9 @@ public class StatelessClientTests
     }
 
     [TestMethod]
-    public void Functions_ShouldSendKeyAsBearer_GivenLegacyKey()
+    public async Task Functions_ShouldSendKeyAsBearer_GivenLegacyKey()
     {
-        StatelessClient.Functions(SupabaseUrl, "legacy-jwt-key", FormatOptions()).GetHeaders!()
+        (await StatelessClient.Functions(SupabaseUrl, "legacy-jwt-key", FormatOptions()).GetHeaders!(CancellationToken.None))
             .Should().ContainKey("Authorization").WhoseValue.Should().Be("Bearer legacy-jwt-key",
                 "legacy JWT keys are unchanged on the functions path");
     }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 using Supabase.Postgrest.Extensions;
 using Supabase.Postgrest.Models;
 
@@ -31,7 +33,7 @@ public class ModeledResponse<T> : BaseResponse where T : BaseModel, new()
     public int Count = 0;
 
     /// <inheritdoc />
-    public ModeledResponse(BaseResponse baseResponse, JsonSerializerOptions serializerSettings, Func<Dictionary<string, string>>? getHeaders = null, bool shouldParse = true) : base(baseResponse.ClientOptions, baseResponse.ResponseMessage, baseResponse.Content)
+    public ModeledResponse(BaseResponse baseResponse, JsonSerializerOptions serializerSettings, Func<CancellationToken, Task<Dictionary<string, string>>>? getHeaders = null, bool shouldParse = true) : base(baseResponse.ClientOptions, baseResponse.ResponseMessage, baseResponse.Content)
     {
         this.Content = baseResponse.Content;
         this.ResponseMessage = baseResponse.ResponseMessage;

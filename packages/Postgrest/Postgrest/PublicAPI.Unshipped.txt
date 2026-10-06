@@ -1,1 +1,7 @@
 #nullable enable
+*REMOVED*Supabase.Postgrest.Client.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+*REMOVED*Supabase.Postgrest.Table<TModel>.GetHeaders.get -> System.Func<System.Collections.Generic.Dictionary<string!, string!>!>?
+*REMOVED*Supabase.Postgrest.Responses.ModeledResponse<T>.ModeledResponse(Supabase.Postgrest.Responses.BaseResponse! baseResponse, System.Text.Json.JsonSerializerOptions! serializerSettings, System.Func<System.Collections.Generic.Dictionary<string!, string!>!>? getHeaders = null, bool shouldParse = true) -> void
+Supabase.Postgrest.Client.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+Supabase.Postgrest.Table<TModel>.GetHeaders.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>?
+Supabase.Postgrest.Responses.ModeledResponse<T>.ModeledResponse(Supabase.Postgrest.Responses.BaseResponse! baseResponse, System.Text.Json.JsonSerializerOptions! serializerSettings, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string!, string!>!>!>? getHeaders = null, bool shouldParse = true) -> void

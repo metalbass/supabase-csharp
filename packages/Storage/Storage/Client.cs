@@ -16,5 +16,5 @@ public class Client : StorageBucketApi, IStorageClient<Bucket, FileObject>
     /// </summary>
     /// <param name="id">Bucket Id</param>
     /// <returns></returns>
-    public IStorageFileApi<FileObject> From(string id) => new StorageFileApi(this.Url, id, this.Options, this.Headers);
+    public IStorageFileApi<FileObject> From(string id) => new StorageFileApi(this.Url, id, this.Options, this.Headers) { GetHeaders = this.GetHeaders };
 }

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Supabase.Core.Diagnostics;
+using Supabase.Core.Extensions;
 using Supabase.Core.Http;
 using Supabase.Storage.Exceptions;
 
@@ -55,6 +56,17 @@ internal static class Helpers
     /// <summary>Resolves the client that carries file downloads, mirroring <see cref="ResolveRequestClient"/>.</summary>
     internal static HttpClient ResolveDownloadClient(ClientOptions options) =>
         options.HttpDownloadClient ?? DefaultHttpClientFactory.Create(options.HttpDownloadTimeout, options.Proxy);
+
+    /// <summary>The headers of one request: the dynamic headers, when a provider is set, under the fixed ones.</summary>
+    internal static async Task<Dictionary<string, string>> ResolveHeadersAsync(Func<CancellationToken, Task<Dictionary<string, string>>>? getHeaders, Dictionary<string, string> headers, CancellationToken cancellationToken)
+    {
+        if (getHeaders == null)
+        {
+            return headers;
+        }
+
+        return (await getHeaders(cancellationToken).ConfigureAwait(false)).MergeLeft(headers);
+    }
 
     /// <summary>
     /// Helper to make a request using the defined parameters to an API Endpoint and coerce into a model.

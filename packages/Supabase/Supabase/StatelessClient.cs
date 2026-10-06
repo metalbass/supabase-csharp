@@ -109,7 +109,7 @@ public static class StatelessClient
             Proxy = options.Proxy,
             Retry = options.FunctionsRetry
         });
-        client.GetHeaders = () => headers;
+        client.GetHeaders = _ => Task.FromResult(headers);
 
         return client;
     }

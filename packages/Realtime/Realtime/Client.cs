@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Supabase.Realtime.Channel;
 using Supabase.Realtime.Exceptions;
@@ -45,10 +46,10 @@ public class Client : IRealtimeClient<RealtimeSocket, RealtimeChannel>
     /// </summary>
     public ClientOptions Options { get; }
 
-    private Func<Dictionary<string, string>>? getHeaders { get; set; }
+    private Func<CancellationToken, Task<Dictionary<string, string>>>? getHeaders { get; set; }
 
     /// <inheritdoc />
-    public Func<Dictionary<string, string>>? GetHeaders
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders
     {
         get => this.getHeaders;
         set

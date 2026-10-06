@@ -161,7 +161,7 @@ public class ClientContractTests
     [TestMethod]
     public async Task Invoke_ShouldMergeDynamicHeaders_GivenGetHeaders()
     {
-        this.client.GetHeaders = () => new Dictionary<string, string> { { "x-dynamic", "from-callback" } };
+        this.client.GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "x-dynamic", "from-callback" } });
         this.RespondWith(200, "ok");
         await this.client.Invoke(FunctionName);
         this.HeaderOf("x-dynamic").Should().Be("from-callback");
@@ -170,7 +170,7 @@ public class ClientContractTests
     [TestMethod]
     public async Task Invoke_ShouldPreferOptionHeadersOverDynamicHeaders()
     {
-        this.client.GetHeaders = () => new Dictionary<string, string> { { "x-shared", "from-callback" } };
+        this.client.GetHeaders = _ => Task.FromResult(new Dictionary<string, string> { { "x-shared", "from-callback" } });
         this.RespondWith(200, "ok");
         await this.client.Invoke(FunctionName, options: new InvokeFunctionOptions
         {

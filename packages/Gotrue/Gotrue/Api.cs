@@ -29,7 +29,7 @@ public class Api : IGotrueApi<User, Session>
     /// Function that can be set to return dynamic headers.
     /// Headers specified in the constructor will ALWAYS take precedence over headers returned by this function.
     /// </summary>
-    public Func<Dictionary<string, string>>? GetHeaders { get; set; }
+    public Func<CancellationToken, Task<Dictionary<string, string>>>? GetHeaders { get; set; }
 
     private Dictionary<string, string> headers;
     /// <summary>
@@ -37,7 +37,7 @@ public class Api : IGotrueApi<User, Session>
     /// </summary>
     protected Dictionary<string, string> Headers
     {
-        get => this.GetHeaders != null ? this.GetHeaders().MergeLeft(this.headers) : this.headers;
+        get => this.headers;
         set
         {
             this.headers = value;
@@ -67,14 +67,25 @@ public class Api : IGotrueApi<User, Session>
     }
 
     /// <summary>Routes through the resolved <see cref="httpClient"/> and <see cref="retry"/> policy.</summary>
-    private Task<BaseResponse> MakeRequestAsync(HttpMethod method, string url, object? data = null, Dictionary<string, string>? headers = null,
+    private async Task<BaseResponse> MakeRequestAsync(HttpMethod method, string url, object? data = null, Dictionary<string, string>? headers = null,
         CancellationToken cancellationToken = default) =>
-        Helpers.MakeRequestAsync(method, url, data, headers, this.httpClient, this.retry, cancellationToken);
+        await Helpers.MakeRequestAsync(method, url, data, await this.WithDynamicHeaders(headers, cancellationToken).ConfigureAwait(false), this.httpClient, this.retry, cancellationToken).ConfigureAwait(false);
 
     /// <summary>Routes through the resolved <see cref="httpClient"/> and <see cref="retry"/> policy.</summary>
-    private Task<T?> MakeRequestAsync<T>(HttpMethod method, string url, object? data = null, Dictionary<string, string>? headers = null,
+    private async Task<T?> MakeRequestAsync<T>(HttpMethod method, string url, object? data = null, Dictionary<string, string>? headers = null,
         CancellationToken cancellationToken = default) where T : class =>
-        Helpers.MakeRequestAsync<T>(method, url, data, headers, this.httpClient, this.retry, cancellationToken);
+        await Helpers.MakeRequestAsync<T>(method, url, data, await this.WithDynamicHeaders(headers, cancellationToken).ConfigureAwait(false), this.httpClient, this.retry, cancellationToken).ConfigureAwait(false);
+
+    private async Task<Dictionary<string, string>?> WithDynamicHeaders(Dictionary<string, string>? headers, CancellationToken cancellationToken)
+    {
+        if (this.GetHeaders == null)
+        {
+            return headers;
+        }
+
+        var dynamicHeaders = await this.GetHeaders(cancellationToken).ConfigureAwait(false);
+        return headers == null ? dynamicHeaders : dynamicHeaders.MergeLeft(headers);
+    }
 
     /// <summary>
     /// Signs a user up using an email address and password.
